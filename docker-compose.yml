@@ -1,0 +1,71 @@
+version: "3.9"
+services:
+  mongo:
+    image: mongo:7
+    container_name: studyroom-mongo
+    restart: unless-stopped
+    ports: ["27017:27017"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes: [ "mongo_data:/data/db" ]
+
+  mongo-express:
+    image: mongo-express:1
+    depends_on: [ mongo ]
+    ports: ["8081:8081"]
+    environment:
+      ME_CONFIG_MONGODB_URL: "mongodb://root:example@mongo:27017/?authSource=admin"
+      ME_CONFIG_BASICAUTH: "false"
+
+  api-gateway:
+    build: ./services/api-gateway
+    ports: ["8080:8080"]
+    environment:
+      PORT: "8080"
+      JWT_SECRET: "dev-secret-change"
+      AUTH_URL: "http://auth-svc:8081"
+      ROOMS_URL: "http://rooms-svc:8082"
+      BOOKINGS_URL: "http://bookings-svc:8083"
+    depends_on: [ auth-svc, rooms-svc, bookings-svc ]
+
+  auth-svc:
+    build: ./services/auth
+    environment:
+      PORT: "8081"
+      MONGODB_URI: "mongodb://root:example@mongo:27017/?authSource=admin"
+      MONGODB_DB: "auth_db"
+      JWT_SECRET: "dev-secret-change"
+      JWT_ISSUER: "studyroom"
+      JWT_TTL: "15m"
+    depends_on: [ mongo ]
+
+  rooms-svc:
+    build:
+      context: ./services/room
+      dockerfile: Dockerfile
+    environment:
+      PORT: "8082"
+      GRPC_PORT: "9002"
+      MONGODB_URI: "mongodb://root:example@mongo:27017/?authSource=admin"
+      MONGODB_DB: "rooms_db"
+      INTERNAL_TOKEN: "internal-call-secret"
+    depends_on: [ mongo ]
+    ports: ["9002:9002"]
+
+  bookings-svc:
+    build:
+      context: ./services/booking
+      dockerfile: Dockerfile
+    environment:
+      PORT: "8083"
+      MONGODB_URI: "mongodb://root:example@mongo:27017/?authSource=admin"
+      MONGODB_DB: "bookings_db"
+      ROOMS_GRPC_ADDR: "rooms-svc:9002"
+      INTERNAL_TOKEN: "internal-call-secret"
+    depends_on: [ mongo, rooms-svc ]
+
+
+
+volumes:
+  mongo_data:

@@ -1,0 +1,29 @@
+syntax = "proto3";
+package studyroom.rooms.v1;
+
+option go_package = "studyroom/proto/rooms/v1;roomspb";
+
+// Minimal service used by bookings-svc.
+service RoomsService {
+  // Validate that a room is OPEN for [start,end) and meets min capacity.
+  rpc OpenCheck(OpenCheckRequest) returns (OpenCheckResponse);
+  // List all rooms (id, name, capacity).
+  rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse);
+}
+
+message OpenCheckRequest {
+  string room_id = 1;       // hex ObjectID
+  string start   = 2;       // RFC3339
+  string end     = 3;       // RFC3339
+  int32  min_capacity = 4;  // >= this
+  string internal_token = 5; // simple shared secret
+}
+message OpenCheckResponse { bool ok = 1; }
+
+message ListRoomsRequest {}
+message ListRoomsResponse { repeated Room rooms = 1; }
+message Room {
+  string id = 1;
+  string name = 2;
+  int32  capacity = 3;
+}

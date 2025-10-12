@@ -1,0 +1,27 @@
+syntax = "proto3";
+package studyroom.rooms.v1;
+
+// IMPORTANT: this lets us import as `roomspb` from local `internal/pb`.
+option go_package = "internal/pb;roomspb";
+
+service RoomsService {
+  rpc OpenCheck(OpenCheckRequest) returns (OpenCheckResponse);
+  rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse);
+}
+
+message OpenCheckRequest {
+  string room_id = 1;       // hex ObjectID
+  string start   = 2;       // RFC3339
+  string end     = 3;       // RFC3339
+  int32  min_capacity = 4;  // >= this
+  string internal_token = 5; // simple shared secret
+}
+message OpenCheckResponse { bool ok = 1; }
+
+message ListRoomsRequest {}
+message ListRoomsResponse { repeated Room rooms = 1; }
+message Room {
+  string id = 1;
+  string name = 2;
+  int32  capacity = 3;
+}
